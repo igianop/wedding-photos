@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Photo Uploader</title>
+</head>
+<body>
+  <h2>Upload Photos</h2>
+  <input type="file" id="fileInput" multiple>
+  <button onclick="upload()">Upload</button>
+  <pre id="output"></pre>
+
+  <script>
+    let TOKEN = null;
+
+    async function getToken() {
+      const res = await fetch('/upload-token');
+      const data = await res.json();
+      TOKEN = data.token;
+    }
+
+    async function upload() {
+      if (!TOKEN) await getToken();
+
+      const files = document.getElementById('fileInput').files;
+      if (!files.length) return;
+
+      const formData = new FormData();
+      for (const file of files) {
+        formData.append('files', file);
+      }
+
+      const res = await fetch('/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + TOKEN
+        },
+        body: formData
+      });
+
+      if (res.status === 401) {
+        // αν έληξε το token, ξαναπάρε νέο
+        await getToken();
+        return upload();
+      }
+
+      const result = await res.json();
+      document.getElementById('output').textContent = JSON.stringify(result, null, 2);
+    }
+  </script>
+</body>
+</html>
